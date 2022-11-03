@@ -17,7 +17,7 @@ namespace Kentico.Xperience.Twilio.SMS
     /// <summary>
     /// Initalizes the <see cref="TwilioClient"/> used by the Twilio SMS integration.
     /// </summary>
-    public class TwilioSMSModule : Module
+    public sealed class TwilioSMSModule : Module
     {
         private const string APPSETTING_TWILIO_ACCOUNTSID = "TwilioAccountSID";
         private const string APPSETTING_TWILIO_AUTHTOKEN = "TwilioAuthToken";
