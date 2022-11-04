@@ -1,11 +1,9 @@
-﻿using Kentico.Xperience.Twilio.SMS.Services;
-
-using Twilio.Rest.Api.V2010.Account;
+﻿using Twilio.Rest.Api.V2010.Account;
 
 namespace Kentico.Xperience.Twilio.SMS.Models
 {
     /// <summary>
-    /// Represents the response of a <see cref="ITwilioMessageSender.SendMessage"/> call.
+    /// Represents the response of an SMS send.
     /// </summary>
     public sealed class MessagingResponse
     {
