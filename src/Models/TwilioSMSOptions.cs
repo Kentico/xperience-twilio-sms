@@ -3,7 +3,7 @@
     /// <summary>
     /// Twilio SMS integration options.
     /// </summary>
-    public sealed class TwilioSMSOptions
+    public sealed class TwilioSmsOptions
     {
         /// <summary>
         /// Configuration section name.

@@ -9,10 +9,10 @@ using Kentico.Xperience.Twilio.SMS;
 using System;
 using System.Linq;
 
-[assembly: RegisterExtension(typeof(TwilioSMSMacros), typeof(UtilNamespace))]
+[assembly: RegisterExtension(typeof(TwilioSmsMacros), typeof(UtilNamespace))]
 namespace Kentico.Xperience.Twilio.SMS
 {
-    internal class TwilioSMSMacros : MacroMethodContainer
+    internal class TwilioSmsMacros : MacroMethodContainer
     {
         [MacroMethod(typeof(string), "Gets a list of contact fields which may contain a phone number, in a format suitable for drop-down selection.", 0)]
         public static object GetRecipientContactFields(EvaluationContext context, params object[] parameters)

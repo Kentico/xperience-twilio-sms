@@ -11,13 +11,13 @@ using System.Configuration;
 using Twilio;
 
 [assembly: AssemblyDiscoverable]
-[assembly: RegisterModule(typeof(TwilioSMSModule))]
+[assembly: RegisterModule(typeof(TwilioSmsModule))]
 namespace Kentico.Xperience.Twilio.SMS
 {
     /// <summary>
     /// Initalizes the <see cref="TwilioClient"/> used by the Twilio SMS integration.
     /// </summary>
-    public sealed class TwilioSMSModule : Module
+    public sealed class TwilioSmsModule : Module
     {
         private const string APPSETTING_TWILIO_ACCOUNTSID = "TwilioAccountSID";
         private const string APPSETTING_TWILIO_AUTHTOKEN = "TwilioAuthToken";
@@ -34,7 +34,7 @@ namespace Kentico.Xperience.Twilio.SMS
 
 
         /// <inheritdoc/>
-        public TwilioSMSModule() : base(nameof(TwilioSMSModule))
+        public TwilioSmsModule() : base(nameof(TwilioSmsModule))
         {
         }
 

@@ -18,7 +18,6 @@ namespace Kentico.Xperience.Twilio.SMS.Services
     internal class DefaultTwilioMessageSender : ITwilioMessageSender
     {
         private const string SETTING_TWILIO_MESSAGINGSERVICESID = "TwilioSMSMessagingService";
-        private readonly IAppSettingsService appSettingsService;
         private readonly IEventLogService eventLogService;
         private readonly ILocalizationService localizationService;
         private readonly ISettingsService settingsService;
@@ -34,12 +33,10 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         }
 
 
-        public DefaultTwilioMessageSender(IAppSettingsService appSettingsService,
-            IEventLogService eventLogService,
+        public DefaultTwilioMessageSender(IEventLogService eventLogService,
             ILocalizationService localizationService,
             ISettingsService settingsService)
         {
-            this.appSettingsService = appSettingsService;
             this.eventLogService = eventLogService;
             this.localizationService = localizationService;
             this.settingsService = settingsService;
@@ -93,7 +90,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
                 return Task.FromResult(HandleValidationError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyValidationNumber")));
             }
 
-            if (!TwilioSMSModule.TwilioClientInitialized)
+            if (!TwilioSmsModule.TwilioClientInitialized)
             {
                 return Task.FromResult(HandleValidationError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.ClientNotInitialized")));
             }
@@ -180,7 +177,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
 
         private Task<MessagingResponse> ValidateCommonSendParameters(string message, string recipientNumber)
         {
-            if (!TwilioSMSModule.TwilioClientInitialized)
+            if (!TwilioSmsModule.TwilioClientInitialized)
             {
                 return Task.FromResult(HandleSendError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.ClientNotInitialized")));
             }
@@ -200,7 +197,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
                 return Task.FromResult(HandleSendError(String.Format(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.InvalidNumber"), recipientNumber)));
             }
 
-            return null;
+            return Task.FromResult<MessagingResponse>(null);
         }
 
 
