@@ -48,7 +48,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
             var errorResponse = ValidateCommonSendParameters(message, recipientNumber);
             if (errorResponse != null)
             {
-                return errorResponse;
+                return Task.FromResult(errorResponse);
             }
 
             if (String.IsNullOrEmpty(fromNumber))
@@ -70,7 +70,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
             var errorResponse = ValidateCommonSendParameters(message, recipientNumber);
             if (errorResponse != null)
             {
-                return errorResponse;
+                return Task.FromResult(errorResponse);
             }
 
             var messagingService = String.IsNullOrEmpty(messagingServiceSid) ? MessagingServiceSid : messagingServiceSid;
@@ -175,29 +175,29 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         }
 
 
-        private Task<MessagingResponse> ValidateCommonSendParameters(string message, string recipientNumber)
+        private MessagingResponse ValidateCommonSendParameters(string message, string recipientNumber)
         {
             if (!TwilioSmsModule.TwilioClientInitialized)
             {
-                return Task.FromResult(HandleSendError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.ClientNotInitialized")));
+                return HandleSendError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.ClientNotInitialized"));
             }
 
             if (String.IsNullOrEmpty(message))
             {
-                return Task.FromResult(HandleSendError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyBody")));
+                return HandleSendError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyBody"));
             }
 
             if (String.IsNullOrEmpty(recipientNumber))
             {
-                return Task.FromResult(HandleSendError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyRecipient")));
+                return HandleSendError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyRecipient"));
             }
 
             if (!NumberIsValid(recipientNumber))
             {
-                return Task.FromResult(HandleSendError(String.Format(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.InvalidNumber"), recipientNumber)));
+                return HandleSendError(String.Format(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.InvalidNumber"), recipientNumber));
             }
 
-            return Task.FromResult<MessagingResponse>(null);
+            return null;
         }
 
 
