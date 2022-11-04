@@ -1,5 +1,6 @@
 ﻿using Kentico.Xperience.Twilio.SMS.Models;
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Kentico.Xperience.Twilio.SMS.Services
@@ -10,14 +11,15 @@ namespace Kentico.Xperience.Twilio.SMS.Services
     public interface ITwilioMessageSender
     {
         /// <summary>
-        /// Sends an SMS message from a Twilio Messaging Service.
+        /// Sends an SMS message from the Twilio Messaging Service stored in the Xperience settings.
         /// </summary>
         /// <param name="message">The body of the SMS message.</param>
         /// <param name="recipientNumber">The phone number to send the message to.</param>
         /// <param name="messagingServiceSid">If provided, the specified Messaging Service will be used instead of
         /// the default Messaging Service.</param>
+        /// <param name="mediaUrls">A list of absolute URLs to media files included in the message.</param>
         /// <returns>The response from the Twilio API.</returns>
-        Task<MessagingResponse> SendMessageFromService(string message, string recipientNumber, string messagingServiceSid = null);
+        Task<MessagingResponse> SendMessageFromService(string message, string recipientNumber, string messagingServiceSid = null, IEnumerable<string> mediaUrls = null);
 
 
         /// <summary>
@@ -26,8 +28,9 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         /// <param name="message">The body of the SMS message.</param>
         /// <param name="recipientNumber">The phone number to send the message to.</param>
         /// <param name="fromNumber">The number to send the message from.</param>
+        /// <param name="mediaUrls">A list of absolute URLs to media files included in the message.</param>
         /// <returns>The response from the Twilio API.</returns>
-        Task<MessagingResponse> SendMessageFromNumber(string message, string recipientNumber, string fromNumber);
+        Task<MessagingResponse> SendMessageFromNumber(string message, string recipientNumber, string fromNumber, IEnumerable<string> mediaUrls = null);
 
 
         /// <summary>

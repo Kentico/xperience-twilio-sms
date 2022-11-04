@@ -5,6 +5,8 @@ using Kentico.Xperience.Twilio.SMS.Models;
 using Kentico.Xperience.Twilio.SMS.Services;
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -43,9 +45,9 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         }
 
 
-        public Task<MessagingResponse> SendMessageFromNumber(string message, string recipientNumber, string fromNumber)
+        public Task<MessagingResponse> SendMessageFromNumber(string message, string recipientNumber, string fromNumber, IEnumerable<string> mediaUrls = null)
         {
-            var errorResponse = ValidateCommonSendParameters(message, recipientNumber);
+            var errorResponse = ValidateCommonSendParameters(message, recipientNumber, mediaUrls);
             if (errorResponse != null)
             {
                 return Task.FromResult(errorResponse);
@@ -61,13 +63,18 @@ namespace Kentico.Xperience.Twilio.SMS.Services
                 return Task.FromResult(HandleSendError(String.Format(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.InvalidNumber"), fromNumber)));
             }
 
-            return SendMessageFromNumberInternal(message, recipientNumber, fromNumber);
+            var options = new CreateMessageOptions(new PhoneNumber(recipientNumber))
+            {
+                Body = message,
+                From = fromNumber
+            };
+            return SendMessageInternal(options, mediaUrls);
         }
 
 
-        public Task<MessagingResponse> SendMessageFromService(string message, string recipientNumber, string messagingServiceSid = null)
+        public Task<MessagingResponse> SendMessageFromService(string message, string recipientNumber, string messagingServiceSid = null, IEnumerable<string> mediaUrls = null)
         {
-            var errorResponse = ValidateCommonSendParameters(message, recipientNumber);
+            var errorResponse = ValidateCommonSendParameters(message, recipientNumber, mediaUrls);
             if (errorResponse != null)
             {
                 return Task.FromResult(errorResponse);
@@ -79,7 +86,12 @@ namespace Kentico.Xperience.Twilio.SMS.Services
                 return Task.FromResult(HandleSendError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyServiceID")));
             }
 
-            return SendMessageFromServiceInternal(message, recipientNumber, messagingService);
+            var options = new CreateMessageOptions(new PhoneNumber(recipientNumber))
+            {
+                Body = message,
+                MessagingServiceSid = messagingService
+            };
+            return SendMessageInternal(options, mediaUrls);
         }
 
 
@@ -125,17 +137,25 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         }
 
 
-        private async Task<MessagingResponse> SendMessageFromNumberInternal(string message, string recipientNumber, string fromNumber)
+        private async Task<MessagingResponse> SendMessageInternal(CreateMessageOptions options, IEnumerable<string> mediaUrls)
         {
+            if (mediaUrls != null && mediaUrls.Any())
+            {
+                var mediaUris = mediaUrls.Select(url =>
+                {
+                    if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                    {
+                        return uri;
+                    }
+
+                    return null;
+                }).Where(uri => uri != null);
+                options.MediaUrl = mediaUris.ToList();
+            }
+
             try
             {
-                var response = await MessageResource.CreateAsync(
-                    new CreateMessageOptions(new PhoneNumber(recipientNumber))
-                    {
-                        Body = message,
-                        From = fromNumber
-                    }
-                );
+                var response = await MessageResource.CreateAsync(options);
 
                 return new MessagingResponse(response.Status)
                 {
@@ -150,32 +170,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         }
 
 
-        private async Task<MessagingResponse> SendMessageFromServiceInternal(string message, string recipientNumber, string messagingService)
-        {
-            try
-            {
-                var response = await MessageResource.CreateAsync(
-                    new CreateMessageOptions(new PhoneNumber(recipientNumber))
-                    {
-                        Body = message,
-                        MessagingServiceSid = messagingService
-                    }
-                );
-
-                return new MessagingResponse(response.Status)
-                {
-                    Id = response.Sid,
-                    ErrorMessage = response.ErrorMessage
-                };
-            }
-            catch (Exception ex)
-            {
-                return HandleSendError(ex.Message);
-            }
-        }
-
-
-        private MessagingResponse ValidateCommonSendParameters(string message, string recipientNumber)
+        private MessagingResponse ValidateCommonSendParameters(string message, string recipientNumber, IEnumerable<string> mediaUrls)
         {
             if (!TwilioSmsModule.TwilioClientInitialized)
             {
@@ -195,6 +190,22 @@ namespace Kentico.Xperience.Twilio.SMS.Services
             if (!NumberIsValid(recipientNumber))
             {
                 return HandleSendError(String.Format(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.InvalidNumber"), recipientNumber));
+            }
+
+            if (mediaUrls != null && mediaUrls.Any())
+            {
+                if (mediaUrls.Count() > 10)
+                {
+                    return HandleSendError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.MediaLimitExceeded"));
+                }
+
+                foreach(var url in mediaUrls)
+                {
+                    if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+                    {
+                        return HandleSendError(String.Format(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.InvalidMedia"), url));
+                    }
+                }
             }
 
             return null;
