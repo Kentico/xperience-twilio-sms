@@ -34,7 +34,7 @@ namespace Kentico.Xperience.Twilio.SMS
                 return;
             }
 
-            Service.Resolve<ITwilioMessageSender>().SendMessageFromService(message, recipientNumber);
+            Service.Resolve<ITwilioMessageSender>().SendMessageFromService(message, recipientNumber).ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }
