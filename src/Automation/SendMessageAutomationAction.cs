@@ -1,5 +1,7 @@
 ﻿using CMS.ContactManagement;
 using CMS.Core;
+using CMS.EventLog;
+using CMS.Helpers;
 
 using Kentico.Xperience.Twilio.SMS.Services;
 
@@ -11,22 +13,25 @@ namespace Kentico.Xperience.Twilio.SMS
     {
         public override void Execute()
         {
-            var message = GetResolvedParameter<string>("Text", String.Empty);
+            var message = GetResolvedParameter("Text", String.Empty);
             if (String.IsNullOrEmpty(message))
             {
-                throw new InvalidOperationException("SMS body text cannot be empty.");
+                LogMessage(EventType.ERROR, nameof(SendMessageAutomationAction), ResHelper.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyBody"), Contact);
+                return;
             }
 
-            var recipientColumnName = GetResolvedParameter<string>("Recipient", String.Empty);
+            var recipientColumnName = GetResolvedParameter("Recipient", String.Empty);
             if (String.IsNullOrEmpty(recipientColumnName))
             {
-                throw new InvalidOperationException("Recipient phone number column not selected.");
+                LogMessage(EventType.ERROR, nameof(SendMessageAutomationAction), ResHelper.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyRecipient"), Contact);
+                return;
             }
 
             var recipientNumber = Contact.GetStringValue(recipientColumnName, String.Empty);
             if (String.IsNullOrEmpty(recipientNumber))
             {
-                throw new InvalidOperationException("Recipient phone number cannot be empty.");
+                LogMessage(EventType.ERROR, nameof(SendMessageAutomationAction), ResHelper.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyRecipient"), Contact);
+                return;
             }
 
             Service.Resolve<ITwilioMessageSender>().SendMessageFromService(message, recipientNumber);
