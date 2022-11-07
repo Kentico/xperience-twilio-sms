@@ -9,8 +9,12 @@ using System;
 
 namespace Kentico.Xperience.Twilio.SMS
 {
-    internal class SendMessageAutomationAction : ContactAutomationAction
+    /// <summary>
+    /// A Marketing Automation action which sends a Twilio SMS from a Messaging Service to the selected phone number.
+    /// </summary>
+    public sealed class SendMessageAutomationAction : ContactAutomationAction
     {
+        /// <inheritdoc/>
         public override void Execute()
         {
             var message = GetResolvedParameter("Text", String.Empty);
@@ -34,7 +38,7 @@ namespace Kentico.Xperience.Twilio.SMS
                 return;
             }
 
-            Service.Resolve<ITwilioMessageSender>().SendMessageFromService(message, recipientNumber).ConfigureAwait(false).GetAwaiter().GetResult();
+            Service.Resolve<ITwilioSmsClient>().SendMessageFromService(message, recipientNumber).ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }
