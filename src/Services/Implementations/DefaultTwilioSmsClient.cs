@@ -14,16 +14,17 @@ using Twilio.Rest.Api.V2010.Account;
 using Twilio.Rest.Lookups.V2;
 using Twilio.Types;
 
-[assembly: RegisterImplementation(typeof(ITwilioMessageSender), typeof(DefaultTwilioMessageSender), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
+[assembly: RegisterImplementation(typeof(ITwilioSmsClient), typeof(DefaultTwilioSmsClient), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Twilio.SMS.Services
 {
-    internal class DefaultTwilioMessageSender : ITwilioMessageSender
+    internal class DefaultTwilioSmsClient : ITwilioSmsClient
     {
         private const string SETTING_TWILIO_MESSAGINGSERVICESID = "TwilioSMSMessagingService";
         private readonly IEventLogService eventLogService;
         private readonly ILocalizationService localizationService;
         private readonly ISettingsService settingsService;
         private readonly Regex phoneNumberRegex = new("^\\+[1-9]\\d{1,14}$");
+        private readonly Dictionary<string, NumberValidationResponse> validatedNumbers = new();
 
 
         private string MessagingServiceSid
@@ -35,7 +36,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         }
 
 
-        public DefaultTwilioMessageSender(IEventLogService eventLogService,
+        public DefaultTwilioSmsClient(IEventLogService eventLogService,
             ILocalizationService localizationService,
             ISettingsService settingsService)
         {
@@ -113,7 +114,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
 
         private MessagingResponse HandleSendError(string error)
         {
-            eventLogService.LogError(nameof(DefaultTwilioMessageSender), nameof(HandleSendError), error);
+            eventLogService.LogError(nameof(DefaultTwilioSmsClient), nameof(HandleSendError), error);
             return new MessagingResponse(MessageResource.StatusEnum.Failed)
             {
                 ErrorMessage = error
@@ -123,7 +124,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
 
         private NumberValidationResponse HandleValidationError(string error)
         {
-            eventLogService.LogError(nameof(DefaultTwilioMessageSender), nameof(HandleValidationError), error);
+            eventLogService.LogError(nameof(DefaultTwilioSmsClient), nameof(HandleValidationError), error);
             return new NumberValidationResponse(false)
             {
                 ErrorMessage = error
@@ -199,7 +200,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
                     return HandleSendError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.MediaLimitExceeded"));
                 }
 
-                foreach(var url in mediaUrls)
+                foreach (var url in mediaUrls)
                 {
                     if (!Uri.TryCreate(url, UriKind.Absolute, out _))
                     {
@@ -214,16 +215,22 @@ namespace Kentico.Xperience.Twilio.SMS.Services
 
         private async Task<NumberValidationResponse> ValidatePhoneNumberInternal(string phoneNumber, string countryCode)
         {
+            var cacheKey = $"{phoneNumber}|{countryCode}";
             var options = new FetchPhoneNumberOptions(phoneNumber);
             if (!String.IsNullOrEmpty(countryCode))
             {
                 options.CountryCode = countryCode;
             }
 
+            if (validatedNumbers.TryGetValue(cacheKey, out var cachedResponse))
+            {
+                return cachedResponse;
+            }
+
             try
             {
                 var response = await PhoneNumberResource.FetchAsync(options);
-                return new NumberValidationResponse(true)
+                var validationResponse = new NumberValidationResponse(true)
                 {
                     Valid = response.Valid,
                     FormattedNumber = response.PhoneNumber?.ToString(),
@@ -231,6 +238,14 @@ namespace Kentico.Xperience.Twilio.SMS.Services
                     CountryCode = response.CountryCode,
                     ValidationErrors = response.ValidationErrors
                 };
+
+                // Only cache response if the request succeeded
+                if (validationResponse.Success)
+                {
+                    validatedNumbers.Add(cacheKey, validationResponse);
+                }
+
+                return validationResponse;
             }
             catch (Exception ex)
             {

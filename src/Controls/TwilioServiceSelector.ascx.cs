@@ -66,7 +66,7 @@ namespace Kentico.Xperience.Twilio.SMS.Controls
             {
                 try
                 {
-                    if (!TwilioSMSModule.TwilioClientInitialized)
+                    if (!TwilioSmsModule.TwilioClientInitialized)
                     {
                         return Enumerable.Empty<ServiceResource>();
                     }

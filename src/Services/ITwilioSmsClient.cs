@@ -8,7 +8,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
     /// <summary>
     /// Contains methods for dispatching SMS messages to Twilio for processing.
     /// </summary>
-    public interface ITwilioMessageSender
+    public interface ITwilioSmsClient
     {
         /// <summary>
         /// Sends an SMS message from the Twilio Messaging Service stored in the Xperience settings.
