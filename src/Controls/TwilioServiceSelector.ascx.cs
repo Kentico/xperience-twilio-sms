@@ -39,23 +39,32 @@ namespace Kentico.Xperience.Twilio.SMS.Controls
         {
             base.OnLoad(e);
 
-            var services = GetMessagingServices();
-            if (services.Any())
+            if (!IsPostBack)
             {
-                foreach (var service in services)
-                {
-                    drpSenders.Items.Add(new ListItem(service.FriendlyName, service.Sid));
-                }
-
-                if (!String.IsNullOrEmpty(mValue) && services.Any(s => s.Sid.Equals(mValue, StringComparison.OrdinalIgnoreCase)))
-                {
-                    drpSenders.SelectedValue = mValue;
-                }
+                InitDropDown();
             }
-            else
+        }
+
+
+        private void InitDropDown()
+        {
+            drpSenders.Items.Add(new ListItem("(none)", String.Empty));
+
+            var services = GetMessagingServices();
+            if (!services.Any())
             {
                 drpSenders.Enabled = false;
                 drpSenders.ToolTipResourceString = "Kentico.Xperience.Twilio.SMS.Error.ClientNotInitialized";
+                return;
+            }
+
+            foreach (var service in services)
+            {
+                drpSenders.Items.Add(new ListItem(service.FriendlyName, service.Sid));
+                if (!String.IsNullOrEmpty(mValue) && service.Sid.Equals(mValue, StringComparison.OrdinalIgnoreCase))
+                {
+                    drpSenders.SelectedValue = mValue;
+                }
             }
         }
 
