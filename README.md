@@ -1,81 +1,150 @@
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Discord][discussion-shield]][discussion-url]
+[![Stack Overflow](https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white)](https://stackoverflow.com/tags/kentico)
+![Kentico.Xperience.Libraries 13.0.73](https://img.shields.io/badge/Kentico.Xperience.Libraries-v13.0.73-orange)
+[![Nuget](https://img.shields.io/nuget/v/Kentico.Xperience.Twilio.SMS)](https://www.nuget.org/packages/Kentico.Xperience.Twilio.SMS)
 
+# Twilio SMS Kentico Xperience 13 integration
 
+This integration contains custom [Marketing automation](https://docs.xperience.io/on-line-marketing-features/managing-your-on-line-marketing-features/marketing-automation) actions which allow you to send SMS messages to your Xperience contacts easily, without the need for coding! It also exposes some Twilio API methods in an easy-to-use asynchronous service, available in both the CMS and front-end application, allowing your developers to implement more advanced scenarios.
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
-
-Please put here some general information about your Intergration / App / Solution.
-
-
-
-<!-- GETTING STARTED -->
 ## Getting Started
-
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
 
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+This integration requires a Kentico Xperience installation on version __13.0.73__ or higher. You will also need a Twilio account, which you can sign up for free here: https://www.twilio.com/try-twilio. Once you are registered, sign in to the [Twilio Console](https://console.twilio.com/), click __Account > API keys & tokens__, and note the __Account SID__ and __Auth token__ values in the "Live credentials" section.
 
-### Installation
+While you're in the Twilio Console, you should also create one or more [Messaging Services](https://support.twilio.com/hc/en-us/articles/223181308-Getting-started-with-Messaging-Services). You must have at least one Messaging Service to send SMS messages via the [Marketing automation](#send-twilio-sms) action.
 
-_Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
+### Administration project installation
 
-1. Get a free API Key at ... 
-2. Clone the repo
-   ```sh
-   git clone ...
-   ```
-3. Install
-4. Enter your API ...
+1. Install the [Kentico.Xperience.Twilio.SMS](https://www.nuget.org/packages/Kentico.Xperience.Twilio.SMS) NuGet package in the CMS administration project.
+2. In your administration project's `web.config` files's `appSettings` section, add your API keys noted in the [Prerequisites](#prerequisites) section:
 
+```xml
+<add key="TwilioAuthToken" value="<Auth token>"/>
+<add key="TwilioAccountSID" value="<Account SID>"/>
+```
 
+3. Download the _Kentico.Xperience.Twilio.SMS_ ZIP package by locating the latest [Release](https://github.com/Kentico/xperience-google-datastudio/releases).
+4. In the Xperience administration, open the **Sites** application.
+5. [Import](https://docs.xperience.io/x/VAeRBg) the downloaded package.
+    * Make sure the **Import files** and **Import code files** [settings](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/importing-a-site-or-objects#Importingasiteorobjects-Import-Objectselectionsettings) are enabled.
+6. Perform the [necessary steps](https://docs.xperience.io/deploying-websites/exporting-and-importing-sites/importing-a-site-or-objects#Importingasiteorobjects-Importingpackageswithfiles) to include the following imported folder in your project:
+   * `/CMSModules/Kentico.Xperience.Twilio.SMS`
 
-<!-- USAGE EXAMPLES -->
-## Usage
+### Live-site project installation (optional)
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+Installation of the integration on the live-site is not required to use the custom Marketing automation actions included. However, if you would like to use the API on the live-site, you can install it by following these instructions:
 
-_For more examples, please refer to the [Documentation](put URL to documentation here)_
+1. Install the [Kentico.Xperience.Twilio.SMS](https://www.nuget.org/packages/Kentico.Xperience.Twilio.SMS) NuGet package in the live-site project.
+2. In the live-site project's `appsettings.json`, add the following section with your API keys noted in the [Prerequisites](#prerequisites) section:
 
+```json
+"xperience.twilio.sms": {
+  "accountSid": "<Account SID>",
+  "authToken": "<Auth token>"
+}
+```
 
+3. In `Startup.cs`, register the integration in the `ConfigureServices()` method:
 
-<!-- CONTRIBUTING -->
+```cs
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddTwilioSms(Configuration);
+```
+
+## Marketing automation
+
+This integration includes 2 new [Marketing automation](https://docs.xperience.io/on-line-marketing-features/managing-your-on-line-marketing-features/marketing-automation) actions which can be added to your processes:
+
+- [Update contact phone number](#update-contact-phone-number)
+- [Send Twilio SMS](#send-twilio-sms)
+
+### Update contact phone number
+
+Twilio requires recipient phone numbers in the [E.164](https://www.twilio.com/docs/glossary/what-e164) format, for example "+12223334444." If you have been storing contact phone numbers in your Kentico Xperience website, you are most likely using the built-in "Private phone" or "Business phone" fields, which are plain text fields with no formatting. To ensure that your SMS messages can be sent to contacts, you can add this step to your automation processes to automatically format the contact's phone number into E.164.
+
+When you add the "Update contact phone number" action to a process, simply select the contact field containing the phone number you'd like to format. You can select from the 2 built-in fields, as well as any custom field using the "Text" data type:
+
+![Update contact phone number](/img/update-number-properties.png)
+
+When the action executes, Twilio's [validation API](https://www.twilio.com/docs/lookup/tutorials/validation-and-formatting) is called to look up the E.164 format for the provided number. If the request is successful and a formatted number was returned, the selected field is updated with the result. Otherwise, the field isn't updated and the process continues to the next step.
+
+### Send Twilio SMS
+
+This Marketing automation action will send an SMS to the contact using the provided phone number and text. To being using this action, you _must_ select a Messaging Service to use for sending- see [Prerequisites](#prerequisites) for more information on creating a Messaging Service. To select the Messaging Service, open the Xperience administration and go to the __Settings__ application. In the __Integration > Twilio SMS__ section, you will find a new setting called "Messaging service." Use the drop-down list to select the default Messaging Service, and click __Save__.
+
+After adding the action to an automation process, select the contact's phone number and enter the SMS text to send. You can click the black arrow next to the "Text" property to enter macros, such as "{%Contact.ContactFirstName%}."
+
+![Send SMS message](/img/send-sms-properties.png)
+
+When the action executes, the SMS will be sent to the contact using the Messaging Service selected in the __Settings__ application.
+
+## Using the API
+
+This integration provides the [`ITwilioSmsClient`](/src/Services/ITwilioSmsClient.cs) which can be used within both the administration and live-site applications to develop advanced functionality. The client provides the following methods:
+
+- `SendMessageFromService`: Sends an SMS message to a recipient using the Messaging Service selected in the __Settings__ application. A Messaging Service SID can be provided to override the default service.
+- `SendMessageFromNumber`: Sends an SMS message to a recipient directly from a Twilio phone number.
+- `ValidatePhoneNumber`: Requests a valid [E.164](https://www.twilio.com/docs/glossary/what-e164) phone number from Twilio's lookup service.
+
+In both of the SMS sending methods, there is also an additional `mediaUrls` parameter which can be used to send media (images, audio/video, etc.) to the recipient. Note that this feature is subject to limitations- please see [Twilio's documentation](https://support.twilio.com/hc/en-us/articles/223179808-Sending-and-receiving-MMS-messages) for more information. You could use this method to send Kentico Xperience [media files](https://docs.xperience.io/managing-website-content/working-with-files/media-library-files), [attachments](https://docs.xperience.io/managing-website-content/working-with-files/page-attachments), or any other URL pointing to a publicly-accessible file. For example, you may want to send an SMS to a customer after they register for an event, with an infographic outlining the schedule and attractions for the event:
+
+```cs
+var eventPage = pageDataContextRetriever.Retrieve<Event>().Page;
+var infographicUrl = pageAttachmentUrlRetriever.Retrieve(eventPage.Fields.Infographic).AbsoluteUrl;
+var message = "Thank you for registering. Save our schedule so you don't miss our amazing guest speakers!";
+await twilioMessageSender.SendMessageFromService(message, phoneNumber, mediaUrls: new string[] { infographicUrl });
+```
+
+### Example: Sending multi-factor authentication passcodes via SMS
+
+By default, if you have enabled [multi-factor authentication](https://docs.xperience.io/managing-users/user-registration-and-authentication/configuring-multi-factor-authentication) for Kentico Xperience, your users must register a TOTP authenticator like [Google Authenticator](https://support.google.com/accounts/answer/1066447?hl=en). However, it would be more convenient and faster if the passcode were delivered straight to their phone via SMS. Fortunately, it is easy to override the authentication process by creating a custom module, as described in [our documentation](https://docs.xperience.io/custom-development/handling-global-events/handling-custom-multi-factor-authentication).
+
+Our sample code illustrates how to email the passcode to your users, so we can replace the email sending code with code from `ITwilioSmsClient`. To ensure the SMS is sent properly, you may want to validate the number using the `ValidatePhoneNumber()` method, and send the passcode via email if the SMS cannot be sent:
+
+```cs
+private void MFAuthentication_Execute(object sender, AuthenticationEventArgs e)
+{
+    var twilioSmsClient = Service.Resolve<ITwilioSmsClient>();
+    var phoneNumber = e.User.UserSettings.UserPhone;
+    if (String.IsNullOrEmpty(phoneNumber))
+    {
+        SendPasscodeEmail(e.User.Email, e.Passcode);
+        return;
+    }
+
+    var phoneNumberRegex = new Regex("^\\+[1-9]\\d{1,14}$");
+    if (!phoneNumberRegex.IsMatch(phoneNumber))
+    {
+        var validationResult = twilioSmsClient.ValidatePhoneNumber(phoneNumber).ConfigureAwait(false).GetAwaiter().GetResult();
+        if (validationResult.Success && (validationResult.Valid ?? false))
+        {
+            // Request found E.164 phone number, update user
+            phoneNumber = validationResult.FormattedNumber;
+            e.User.UserSettings.UserPhone = phoneNumber;
+            e.User.Update();
+        }
+        else
+        {
+            // Request failed or couldn't find a valid phone number
+            SendPasscodeEmail(e.User.Email, e.Passcode);
+            return;
+        }
+    }
+
+    var smsResult = twilioSmsClient.SendMessageFromService($"Your Kentico Xperience passcode is: {e.Passcode}", phoneNumber).ConfigureAwait(false).GetAwaiter().GetResult();
+    if (smsResult.Status == MessageResource.StatusEnum.Failed)
+    {
+        SendPasscodeEmail(e.User.Email, e.Passcode);
+    }
+}
+```
+
 ## Contributing
 
 For Contributing please see  <a href="./CONTRIBUTING.md">`CONTRIBUTING.md`</a> for more information.
 
-
-
-<!-- LICENSE -->
 ## License
 
 Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more information.
-
-
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://github.com/Kentico/Home/wiki/Checklist-for-publishing-a-new-OS-project#badges-->
-[contributors-shield]: https://img.shields.io/github/contributors/Kentico/kontent-custom-element-samples.svg?style=for-the-badge
-[contributors-url]: https://github.com/Kentico/repo-template/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/Kentico/kontent-custom-element-samples.svg?style=for-the-badge
-[forks-url]: https://github.com/Kentico/repo-template/network/members
-[stars-shield]: https://img.shields.io/github/stars/Kentico/kontent-custom-element-samples.svg?style=for-the-badge
-[stars-url]: https://github.com/Kentico/repo-template/stargazers
-[issues-shield]: https://img.shields.io/github/issues/Kentico/kontent-custom-element-samples.svg?style=for-the-badge
-[issues-url]:https://github.com/Kentico/repo-template/issues
-[license-shield]: https://img.shields.io/github/license/Kentico/kontent-custom-element-samples.svg?style=for-the-badge
-[license-url]:https://github.com/Kentico/repo-template/blob/master/LICENSE.md
-[discussion-shield]: https://img.shields.io/discord/821885171984891914?color=%237289DA&label=Kontent%20Discord&logo=discord
-[discussion-url]: https://discord.com/invite/SKCxwPtevJ
