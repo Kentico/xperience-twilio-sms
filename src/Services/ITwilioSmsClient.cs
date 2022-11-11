@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Kentico.Xperience.Twilio.SMS.Services
 {
     /// <summary>
-    /// Contains methods for dispatching SMS messages to Twilio for processing.
+    /// Contains methods for interfacing with the Twilio SMS API.
     /// </summary>
     public interface ITwilioSmsClient
     {

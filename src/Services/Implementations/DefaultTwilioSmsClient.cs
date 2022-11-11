@@ -216,15 +216,15 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         private async Task<NumberValidationResponse> ValidatePhoneNumberInternal(string phoneNumber, string countryCode)
         {
             var cacheKey = $"{phoneNumber}|{countryCode}";
+            if (validatedNumbers.TryGetValue(cacheKey, out var cachedResponse))
+            {
+                return cachedResponse;
+            }
+
             var options = new FetchPhoneNumberOptions(phoneNumber);
             if (!String.IsNullOrEmpty(countryCode))
             {
                 options.CountryCode = countryCode;
-            }
-
-            if (validatedNumbers.TryGetValue(cacheKey, out var cachedResponse))
-            {
-                return cachedResponse;
             }
 
             try
@@ -239,11 +239,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
                     ValidationErrors = response.ValidationErrors
                 };
 
-                // Only cache response if the request succeeded
-                if (validationResponse.Success)
-                {
-                    validatedNumbers.Add(cacheKey, validationResponse);
-                }
+                validatedNumbers.Add(cacheKey, validationResponse);
 
                 return validationResponse;
             }
