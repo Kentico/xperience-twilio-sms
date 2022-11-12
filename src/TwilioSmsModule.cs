@@ -49,13 +49,11 @@ namespace Kentico.Xperience.Twilio.SMS
                 // Initialize TwilioClient for CMS application
                 var accountSid = ValidationHelper.GetString(ConfigurationManager.AppSettings[APPSETTING_TWILIO_ACCOUNTSID], String.Empty);
                 var authToken = ValidationHelper.GetString(ConfigurationManager.AppSettings[APPSETTING_TWILIO_AUTHTOKEN], String.Empty);
-                if (String.IsNullOrEmpty(accountSid) || String.IsNullOrEmpty(authToken))
+                if (!String.IsNullOrEmpty(accountSid) && !String.IsNullOrEmpty(authToken))
                 {
-                    return;
+                    TwilioClient.Init(accountSid, authToken);
+                    TwilioClientInitialized = true;
                 }
-
-                TwilioClient.Init(accountSid, authToken);
-                TwilioClientInitialized = true;
             }
         }
     }
