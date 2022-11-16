@@ -28,9 +28,9 @@ namespace Kentico.Xperience.Twilio.SMS.Models
 
 
         /// <summary>
-        /// The status of the message- <see cref="MessageResource.StatusEnum.Failed"/> if there was an error.
+        /// <c>True</c> if the SMS request was sent to Twilio.
         /// </summary>
-        public MessageResource.StatusEnum Status
+        public bool Sent
         {
             get;
             private set;
@@ -38,12 +38,22 @@ namespace Kentico.Xperience.Twilio.SMS.Models
 
 
         /// <summary>
+        /// The status of the message- <see cref="MessageResource.StatusEnum.Failed"/> if there was an error.
+        /// </summary>
+        public MessageResource.StatusEnum Status
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="MessagingResponse"/> class.
         /// </summary>
-        /// <param name="status">The status of the message.</param>
-        public MessagingResponse(MessageResource.StatusEnum status)
+        /// <param name="sent"><c>True</c> if the SMS request was sent to Twilio.</param>
+        public MessagingResponse(bool sent)
         {
-            Status = status;
+            Sent = sent;
         }
     }
 }

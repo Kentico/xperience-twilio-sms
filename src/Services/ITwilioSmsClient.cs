@@ -1,7 +1,8 @@
 ﻿using Kentico.Xperience.Twilio.SMS.Models;
 
-using System.Collections.Generic;
 using System.Threading.Tasks;
+
+using Twilio.Rest.Api.V2010.Account;
 
 namespace Kentico.Xperience.Twilio.SMS.Services
 {
@@ -11,26 +12,13 @@ namespace Kentico.Xperience.Twilio.SMS.Services
     public interface ITwilioSmsClient
     {
         /// <summary>
-        /// Sends an SMS message from the Twilio Messaging Service stored in the Xperience settings.
+        /// Sends an SMS message using the provided <paramref name="options"/>.
         /// </summary>
-        /// <param name="message">The body of the SMS message.</param>
-        /// <param name="recipientNumber">The phone number to send the message to.</param>
-        /// <param name="messagingServiceSid">If provided, the specified Messaging Service will be used instead of
-        /// the default Messaging Service.</param>
-        /// <param name="mediaUrls">A list of absolute URLs to media files included in the message.</param>
+        /// <remarks>If no <see cref="CreateMessageOptions.From"/> or <see cref="CreateMessageOptions.MessagingServiceSid"/> is set,
+        /// the default Messaging Service from the Xperience settings will be used.</remarks>
+        /// <param name="options">The options to use.</param>
         /// <returns>The response from the Twilio API.</returns>
-        Task<MessagingResponse> SendMessageFromService(string message, string recipientNumber, string messagingServiceSid = null, IEnumerable<string> mediaUrls = null);
-
-
-        /// <summary>
-        /// Sends an SMS message from a Twilio phone number.
-        /// </summary>
-        /// <param name="message">The body of the SMS message.</param>
-        /// <param name="recipientNumber">The phone number to send the message to.</param>
-        /// <param name="fromNumber">The number to send the message from.</param>
-        /// <param name="mediaUrls">A list of absolute URLs to media files included in the message.</param>
-        /// <returns>The response from the Twilio API.</returns>
-        Task<MessagingResponse> SendMessageFromNumber(string message, string recipientNumber, string fromNumber, IEnumerable<string> mediaUrls = null);
+        Task<MessagingResponse> SendMessageAsync(CreateMessageOptions options);
 
 
         /// <summary>
@@ -41,6 +29,6 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         /// <param name="countryCode">Country code for national phone number lookups. If not provided, the number is verified with
         /// Twilio's international lookup service.</param>
         /// <returns>The response from the Twilio API.</returns>
-        Task<NumberValidationResponse> ValidatePhoneNumber(string phoneNumber, string countryCode = null);
+        Task<NumberValidationResponse> ValidatePhoneNumberAsync(string phoneNumber, string countryCode = null);
     }
 }
