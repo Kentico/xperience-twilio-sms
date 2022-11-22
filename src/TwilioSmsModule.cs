@@ -15,7 +15,7 @@ using Twilio;
 namespace Kentico.Xperience.Twilio.SMS
 {
     /// <summary>
-    /// Initalizes the <see cref="TwilioClient"/> used by the Twilio SMS integration.
+    /// Initializes the <see cref="TwilioClient"/> used by the Twilio SMS integration.
     /// </summary>
     public sealed class TwilioSmsModule : Module
     {
@@ -24,7 +24,7 @@ namespace Kentico.Xperience.Twilio.SMS
 
 
         /// <summary>
-        /// If <c>true</c>, the <see cref="TwilioClient"/> was sucessfully initialized on application startup.
+        /// If <c>true</c>, the <see cref="TwilioClient"/> was successfully initialized on application startup.
         /// </summary>
         public static bool TwilioClientInitialized
         {
