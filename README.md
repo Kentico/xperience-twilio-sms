@@ -163,14 +163,21 @@ The `SendMessageAsync()` method accepts an `CreateMessageOptions` object as a pa
 You can provide a __From__ phone number or __MessagingServiceSid__ to customize how the SMS is sent. If not provided, the Messaging Service chosen in __Settings application > Integration > Twilio SMS__ is used. The returned [`MessageResource`](https://www.twilio.com/docs/sms/api/message-resource) contains a `Status` property indicating whether Twilio successfully processed by Twilio- otherwise it will be `Failed`.
 
 ```cs
-var options = new CreateMessageOptions(phoneNumber)
+try
 {
-    Body = "Thank you for registering. Please verify your account by clicking this link: https://yoursite.com/verify"
-};
-var result = await twilioSmsClient.SendMessageAsync(options);
-if (result.Status == MessageResource.StatusEnum.Failed)
+    var options = new CreateMessageOptions(phoneNumber)
+    {
+        Body = "Thank you for registering. Please verify your account by clicking this link: https://yoursite.com/verify"
+    };
+    var result = await twilioSmsClient.SendMessageAsync(options);
+    if (result.Status == MessageResource.StatusEnum.Failed)
+    {
+        ShowError(result.ErrorMessage);
+    }
+}
+catch (Exception ex)
 {
-    ShowError(result.ErrorMessage);
+    ShowError(ex.Message);
 }
 ```
 
@@ -226,32 +233,48 @@ namespace MySite
                 return;
             }
 
+            // Validate phone number
             if (!phoneNumberRegex.IsMatch(phoneNumber))
             {
-                var validationResult = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber);
-                if (validationResult.Valid ?? false && validationResult.PhoneNumber != null)
+                try
                 {
-                    // Request found E.164 phone number, update user
-                    phoneNumber = validationResult.PhoneNumber.ToString();
-                    user.UserSettings.UserPhone = phoneNumber;
-                    user.Update();
+                    var validationResult = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber);
+                    if (validationResult.Valid ?? false && validationResult.PhoneNumber != null)
+                    {
+                        // Request found E.164 phone number, update user
+                        phoneNumber = validationResult.PhoneNumber.ToString();
+                        user.UserSettings.UserPhone = phoneNumber;
+                        user.Update();
+                    }
+                    else
+                    {
+                        // Request failed or couldn't find a valid phone number
+                        SendPasscodeEmail(user, passcode);
+                        return;
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    // Request failed or couldn't find a valid phone number
                     SendPasscodeEmail(user, passcode);
-                    return;
                 }
             }
 
-            var options = new CreateMessageOptions(phoneNumber)
+            // Send passcode
+            try
             {
-                Body = $"Your Kentico Xperience passcode is: {passcode}"
-            };
-            var smsResult = await twilioSmsClient.SendMessageAsync(options);
-            if (smsResult.Status == MessageResource.StatusEnum.Failed)
+                var options = new CreateMessageOptions(phoneNumber)
+                {
+                    Body = $"Your Kentico Xperience passcode is: {passcode}"
+                };
+                var smsResult = await twilioSmsClient.SendMessageAsync(options);
+                if (smsResult.Status == MessageResource.StatusEnum.Failed)
+                {
+                    // SMS send failed, fallback to email
+                    SendPasscodeEmail(user, passcode);
+                }
+            }
+            catch (Exception ex)
             {
-                // SMS send failed, fallback to email
                 SendPasscodeEmail(user, passcode);
             }
         }
