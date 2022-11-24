@@ -43,7 +43,14 @@ namespace Kentico.Xperience.Twilio.SMS
                 Body = message
             };
 
-            Service.Resolve<ITwilioSmsClient>().SendMessageAsync(options).ConfigureAwait(false);
+            try
+            {
+                Service.Resolve<ITwilioSmsClient>().SendMessageAsync(options).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                LogMessage(EventType.ERROR, nameof(SendMessageAutomationAction), ex.Message, Contact);
+            }
         }
     }
 }
