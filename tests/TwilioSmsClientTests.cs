@@ -27,8 +27,6 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
         private static ITwilioSmsClient twilioSmsClient;
         private static readonly ITwilioRestClient twilioRestClient = Substitute.For<ITwilioRestClient>();
         private static readonly ISettingsService settingsService = Substitute.For<ISettingsService>();
-        private static readonly ILocalizationService localizationService = Substitute.For<ILocalizationService>();
-        private static readonly IEventLogService eventLogService = Substitute.For<IEventLogService>();
 
 
         /// <summary>
@@ -47,10 +45,9 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
             [SetUp]
             public void SendMessageAsyncTests_SetUp()
             {
-                eventLogService.ClearReceivedCalls();
-                twilioRestClient.ClearReceivedCalls();
-                
                 settingsService[SETTINGSKEY].Returns(MESSAGING_SERVICE);
+
+                twilioRestClient.ClearReceivedCalls();
                 twilioRestClient.AccountSid.Returns(ACCOUNT);
                 twilioRestClient.RequestAsync(Arg.Any<Request>()).ReturnsForAnyArgs(args =>
                     Task.FromResult(new Response(HttpStatusCode.OK, $"{{ status:'{MessageResource.StatusEnum.Queued}' }}")));
@@ -58,22 +55,18 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 TwilioClient.SetRestClient(twilioRestClient);
                 TwilioSmsModule.TwilioClientInitialized = true;
 
-                twilioSmsClient = new TwilioSmsClient(eventLogService, localizationService, settingsService);
+                twilioSmsClient = new TwilioSmsClient(settingsService);
             }
 
 
             [Test]
-            public async Task SendMessageAsync_EmptyBody_ReturnsError()
+            public async Task SendMessageAsync_EmptyBody_ThrowsException()
             {
-                var expectedError = "empty body";
-                localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyBody").Returns(expectedError);
                 var options = new CreateMessageOptions("+12223334444");
-                var result = await twilioSmsClient.SendMessageAsync(options);
 
-                Assert.That(result.Sent, Is.False);
-                Assert.That(result.ErrorMessage, Is.EqualTo(expectedError));
+                Assert.ThrowsAsync<InvalidOperationException>(async() => await twilioSmsClient.SendMessageAsync(options),
+                    "Message body cannot be empty.");
                 await twilioRestClient.DidNotReceiveWithAnyArgs().RequestAsync(Arg.Any<Request>());
-                eventLogService.Received().LogEvent(Arg.Is<EventLogData>(arg => arg.EventDescription.Equals(expectedError, StringComparison.OrdinalIgnoreCase)));
             }
 
 
@@ -87,11 +80,10 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                     Body = SMS_BODY,
                     From = new PhoneNumber(expectedSender)
                 };
-                var result = await twilioSmsClient.SendMessageAsync(options);
+                var response = await twilioSmsClient.SendMessageAsync(options);
 
-                Assert.That(result.Sent, Is.True);
-                Assert.That(result.Status, Is.EqualTo(MessageResource.StatusEnum.Queued));
-                Assert.That(result.ErrorMessage, Is.Null);
+                Assert.That(response, Is.Not.Null);
+                Assert.That(response.Status == MessageResource.StatusEnum.Queued);
                 await twilioRestClient.Received().RequestAsync(Arg.Is<Request>(arg =>
                     arg.Uri.AbsolutePath.EndsWith(MESSAGING_PATH, StringComparison.OrdinalIgnoreCase)
                  && arg.PostParams.SingleOrDefault(kvp => kvp.Key.Equals("To", StringComparison.OrdinalIgnoreCase)).Value.Equals(expectedRecipient, StringComparison.OrdinalIgnoreCase)
@@ -101,20 +93,17 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
 
 
             [Test]
-            public async Task SendMessageAsync_InvalidNumber_ReturnsError()
+            public async Task SendMessageAsync_InvalidNumber_ThrowsException()
             {
-                var expectedError = "invalid number";
-                localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.InvalidNumber").Returns(expectedError);
-                var options = new CreateMessageOptions("1112223333")
+                var recipient = "1112223333";
+                var options = new CreateMessageOptions(recipient)
                 {
                     Body = SMS_BODY
                 };
-                var result = await twilioSmsClient.SendMessageAsync(options);
 
-                Assert.That(result.Sent, Is.False);
-                Assert.That(result.ErrorMessage, Is.EqualTo(expectedError));
+                Assert.ThrowsAsync<InvalidOperationException>(async() => await twilioSmsClient.SendMessageAsync(options),
+                    $"The number '{recipient}' is not in a valid Twilio format.");
                 await twilioRestClient.DidNotReceiveWithAnyArgs().RequestAsync(Arg.Any<Request>());
-                eventLogService.Received().LogEvent(Arg.Is<EventLogData>(arg => arg.EventDescription.Equals(expectedError, StringComparison.OrdinalIgnoreCase)));
             }
 
 
@@ -126,11 +115,10 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 {
                     Body = SMS_BODY
                 };
-                var result = await twilioSmsClient.SendMessageAsync(options);
+                var response = await twilioSmsClient.SendMessageAsync(options);
 
-                Assert.That(result.Sent, Is.True);
-                Assert.That(result.Status, Is.EqualTo(MessageResource.StatusEnum.Queued));
-                Assert.That(result.ErrorMessage, Is.Null);
+                Assert.That(response, Is.Not.Null);
+                Assert.That(response.Status == MessageResource.StatusEnum.Queued);
                 await twilioRestClient.Received().RequestAsync(Arg.Is<Request>(arg =>
                     arg.Uri.AbsolutePath.EndsWith(MESSAGING_PATH, StringComparison.OrdinalIgnoreCase)
                  && arg.PostParams.SingleOrDefault(kvp => kvp.Key.Equals("To", StringComparison.OrdinalIgnoreCase)).Value.Equals(expectedRecipient, StringComparison.OrdinalIgnoreCase)
@@ -152,16 +140,14 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
             [SetUp]
             public void ValidateNumberAsyncTests_SetUp()
             {
-                eventLogService.ClearReceivedCalls();
                 twilioRestClient.ClearReceivedCalls();
-
                 twilioRestClient.RequestAsync(Arg.Any<Request>()).ReturnsForAnyArgs(args =>
-                    Task.FromResult(new Response(HttpStatusCode.OK, $"{{ valid: true }}")));
+                    Task.FromResult(new Response(HttpStatusCode.OK, "{ valid:true }")));
 
                 TwilioClient.SetRestClient(twilioRestClient);
                 TwilioSmsModule.TwilioClientInitialized = true;
 
-                twilioSmsClient = new TwilioSmsClient(eventLogService, localizationService, settingsService);
+                twilioSmsClient = new TwilioSmsClient(settingsService);
             }
 
 
@@ -171,23 +157,29 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 var phoneNumber = "1112223333";
                 var expectedPath = String.Format(VALIDATION_PATH, phoneNumber);
                 await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber);
-                await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber);
+                var response = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber);
 
+                Assert.That(response, Is.Not.Null);
+                Assert.That(response.Valid, Is.True);
                 await twilioRestClient.Received(1).RequestAsync(Arg.Is<Request>(arg => arg.Uri.AbsolutePath.EndsWith(expectedPath, StringComparison.OrdinalIgnoreCase)));
             }
 
 
             [Test]
-            public async Task ValidateNumberAsync_EmptyNumber_ReturnsError()
+            public async Task ValidateNumberAsync_EmptyNumber_ThrowsException()
             {
-                var expectedError = "empty number";
-                localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyValidationNumber").Returns(expectedError);
-                var result = await twilioSmsClient.ValidatePhoneNumberAsync(String.Empty);
-
-                Assert.That(result.Success, Is.False);
-                Assert.That(result.ErrorMessage, Is.EqualTo(expectedError));
+                Assert.ThrowsAsync<ArgumentNullException>(async() => await twilioSmsClient.ValidatePhoneNumberAsync(String.Empty));
                 await twilioRestClient.DidNotReceiveWithAnyArgs().RequestAsync(Arg.Any<Request>());
-                eventLogService.Received().LogEvent(Arg.Is<EventLogData>(arg => arg.EventDescription.Equals(expectedError, StringComparison.OrdinalIgnoreCase)));
+            }
+
+
+            [Test]
+            public void ValidateNumberAsync_InvalidCountryCode_ThrowsException()
+            {
+                var countryCode = "en-US";
+
+                Assert.ThrowsAsync<InvalidOperationException>(async() => await twilioSmsClient.ValidatePhoneNumberAsync("+12223334444", countryCode),
+                    $"The country code '{countryCode}' isn't a valid 2-letter country code.");
             }
 
 
@@ -197,11 +189,10 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 var countryCode = "CZ";
                 var phoneNumber = "1112223333";
                 var expectedPath = String.Format(VALIDATION_PATH, phoneNumber);
-                var result = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber, countryCode);
+                var response = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber, countryCode);
 
-                Assert.That(result.Success, Is.True);
-                Assert.That(result.Valid, Is.True);
-                Assert.That(result.ErrorMessage, Is.Null);
+                Assert.That(response, Is.Not.Null);
+                Assert.That(response.Valid, Is.True);
                 await twilioRestClient.Received().RequestAsync(Arg.Is<Request>(arg =>
                     arg.Uri.AbsolutePath.EndsWith(expectedPath, StringComparison.OrdinalIgnoreCase)
                  && arg.QueryParams.SingleOrDefault(kvp => kvp.Key.Equals("CountryCode", StringComparison.OrdinalIgnoreCase)).Value.Equals(countryCode, StringComparison.OrdinalIgnoreCase)));

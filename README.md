@@ -67,7 +67,7 @@ When the action executes, the SMS will be sent to the contact using the Messagin
 
 ## Formatting contact phone numbers
 
-Twilio requires recipient phone numbers in the [E.164](https://www.twilio.com/docs/glossary/what-e164) format, for example "+12223334444." If you have been storing contact phone numbers in your Kentico Xperience website, you are most likely using the built-in "Private phone" or "Business phone" fields, which are plain text fields with no formatting. To ensure that your SMS messages can be sent to contacts, you can use the `ValidatePhoneNumber()` method from [the API](#validating-phone-numbers) format the contact's phone number into E.164.
+Twilio requires recipient phone numbers in the [E.164](https://www.twilio.com/docs/glossary/what-e164) format, for example "+12223334444." If you have been storing contact phone numbers in your Kentico Xperience website, you are most likely using the built-in "Private phone" or "Business phone" fields, which are plain text fields with no formatting. To ensure that your SMS messages can be sent to contacts, you can use the `ValidatePhoneNumberAsync()` method from [the API](#validating-phone-numbers) format the contact's phone number into E.164.
 
 For example, you can create an [object event handler](https://docs.xperience.io/custom-development/handling-global-events/handling-object-events) to format phone numbers whenever a contact is updated:
 
@@ -128,11 +128,18 @@ namespace MySite
                 return;
             }
 
-            var validationResponse = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber, countryCode);
-            if (validationResponse.Success && (validationResponse.Valid ?? false) && !String.IsNullOrEmpty(validationResponse.FormattedNumber))
+            try 
             {
-                contact.SetValue(column, validationResponse.FormattedNumber);
-                contact.Update();
+                var validationResponse = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber, countryCode);
+                if (validationResponse.Valid ?? false && validationResult.PhoneNumber != null)
+                {
+                    contact.SetValue(column, validationResponse.PhoneNumber.ToString());
+                    contact.Update();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error...
             }
         }
     }
@@ -153,7 +160,7 @@ The `SendMessageAsync()` method accepts an `CreateMessageOptions` object as a pa
 - __To__: Set in the constructor, this is the phone number of the SMS recipient.
 - __Body__: The text of the SMS message.
 
-You can provide a __From__ phone number or __MessagingServiceSid__ to customize how the SMS is sent. If not provided, the Messaging Service chosen in __Settings application > Integration > Twilio SMS__ is used. The returned `MessagingResponse` contains a `Sent` property indicating whether the SMS was sent to Twilio for processing- if false, the `ErrorMessage` property will contain details about the error that occurred. If true, the `Status` property indicates whether Twilio successfully queued the SMS for sending.
+You can provide a __From__ phone number or __MessagingServiceSid__ to customize how the SMS is sent. If not provided, the Messaging Service chosen in __Settings application > Integration > Twilio SMS__ is used. The returned [`MessageResource`](https://www.twilio.com/docs/sms/api/message-resource) contains a `Status` property indicating whether Twilio successfully processed by Twilio- otherwise it will be `Failed`.
 
 ```cs
 var options = new CreateMessageOptions(phoneNumber)
@@ -161,7 +168,7 @@ var options = new CreateMessageOptions(phoneNumber)
     Body = "Thank you for registering. Please verify your account by clicking this link: https://yoursite.com/verify"
 };
 var result = await twilioSmsClient.SendMessageAsync(options);
-if (!result.Sent || (result.Status != null && result.Status == MessageResource.StatusEnum.Failed))
+if (result.Status == MessageResource.StatusEnum.Failed)
 {
     ShowError(result.ErrorMessage);
 }
@@ -171,17 +178,17 @@ if (!result.Sent || (result.Status != null && result.Status == MessageResource.S
 
 The `ValidatePhoneNumberAsync()` method attempts to retrieve a valid [E.164](https://www.twilio.com/docs/glossary/what-e164) phone number from Twilio's lookup service. The `countryCode` parameter should be a valid [2-letter country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements) such as "US." If provided, a [national lookup](https://www.twilio.com/docs/lookup/tutorials/validation-and-formatting#validate-a-national-phone-number) is performed. Otherwise, the [international lookup](https://www.twilio.com/docs/lookup/tutorials/validation-and-formatting#format-an-international-phone-number) is used.
 
-The method returns a [`NumberValidationResponse`](/src/Models/NumberValidationResponse.cs) which indicates whether the request was successful and a valid number was found. First, you should check `Success` to see if there was an error during the request. If `Success` is `false`, the `ErrorMessage` property will contain details about the error. Then, check `Valid` to see if the returned number is valid. Finally, ensure that `FormattedNumber` is a valid string. The following sample code can be used to verify whether you can use the returned number:
+The method returns a [`PhoneNumberResource`](https://www.twilio.com/docs/lookup/tutorials/validation-and-formatting#validate-a-national-phone-number) which indicates whether the request was successful and a valid number was found. First, you should check `Valid` to see if a valid E.164 phone number was found. Then, ensure that the returned `PhoneNumber` is not `null`. The following sample code can be used to verify whether you can use the returned number:
 
 ```cs
-var hasValidNumber = validationResponse.Success && (validationResponse.Valid ?? false) && !String.IsNullOrEmpty(validationResponse.FormattedNumber);
+var hasValidNumber = validationResponse.Valid ?? false && validationResponse.PhoneNumber != null;
 ```
 
 ### Example: Sending multi-factor authentication passcodes via SMS
 
 By default, if you have enabled [multi-factor authentication](https://docs.xperience.io/managing-users/user-registration-and-authentication/configuring-multi-factor-authentication) for Kentico Xperience, your users must register a TOTP authenticator like [Google Authenticator](https://support.google.com/accounts/answer/1066447?hl=en). However, it would be more convenient and faster if the passcode were delivered straight to their phone via SMS. Fortunately, it is easy to override the authentication process by creating a custom module, as described in [our documentation](https://docs.xperience.io/custom-development/handling-global-events/handling-custom-multi-factor-authentication).
 
-Our sample code illustrates how to email the passcode to your users, so we can replace the email sending code with code from `ITwilioSmsClient`. To ensure the SMS is sent properly, you may want to validate the number using the `ValidatePhoneNumber()` method, and send the passcode via email if the SMS cannot be sent:
+Our sample code illustrates how to email the passcode to your users, so we can replace the email sending code with code from `ITwilioSmsClient`. To ensure the SMS is sent properly, you may want to validate the number using the `ValidatePhoneNumberAsync()` method, and send the passcode via email if the SMS cannot be sent:
 
 ```cs
 [assembly: RegisterModule(typeof(MySite.CustomModule))]
@@ -222,10 +229,10 @@ namespace MySite
             if (!phoneNumberRegex.IsMatch(phoneNumber))
             {
                 var validationResult = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber);
-                if (validationResult.Success && (validationResult.Valid ?? false) && !String.IsNullOrEmpty(validationResult.FormattedNumber))
+                if (validationResult.Valid ?? false && validationResult.PhoneNumber != null)
                 {
                     // Request found E.164 phone number, update user
-                    phoneNumber = validationResult.FormattedNumber;
+                    phoneNumber = validationResult.PhoneNumber.ToString();
                     user.UserSettings.UserPhone = phoneNumber;
                     user.Update();
                 }
@@ -242,7 +249,7 @@ namespace MySite
                 Body = $"Your Kentico Xperience passcode is: {passcode}"
             };
             var smsResult = await twilioSmsClient.SendMessageAsync(options);
-            if (!result.Sent || (result.Status != null && result.Status == MessageResource.StatusEnum.Failed))
+            if (smsResult.Status == MessageResource.StatusEnum.Failed)
             {
                 // SMS send failed, fallback to email
                 SendPasscodeEmail(user, passcode);

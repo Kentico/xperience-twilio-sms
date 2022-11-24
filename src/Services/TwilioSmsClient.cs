@@ -1,7 +1,6 @@
 ﻿using CMS;
 using CMS.Core;
 
-using Kentico.Xperience.Twilio.SMS.Models;
 using Kentico.Xperience.Twilio.SMS.Services;
 
 using System;
@@ -22,11 +21,10 @@ namespace Kentico.Xperience.Twilio.SMS.Services
     internal class TwilioSmsClient : ITwilioSmsClient
     {
         private const string SETTING_TWILIO_MESSAGINGSERVICESID = "TwilioSMSMessagingService";
-        private readonly IEventLogService eventLogService;
-        private readonly ILocalizationService localizationService;
         private readonly ISettingsService settingsService;
+        private readonly Regex countryCodeRegex = new("^[a-zA-z]{2}$");
         private readonly Regex phoneNumberRegex = new("^\\+[1-9]\\d{1,14}$");
-        private readonly Dictionary<string, NumberValidationResponse> validatedNumbers = new();
+        private readonly Dictionary<string, PhoneNumberResource> validatedNumbers = new();
 
 
         private string MessagingServiceSid
@@ -41,28 +39,49 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="TwilioSmsClient"/> class.
         /// </summary>
-        public TwilioSmsClient(IEventLogService eventLogService,
-            ILocalizationService localizationService,
-            ISettingsService settingsService)
+        public TwilioSmsClient(ISettingsService settingsService)
         {
-            this.eventLogService = eventLogService;
-            this.localizationService = localizationService;
             this.settingsService = settingsService;
         }
 
 
         /// <inheritdoc/>
-        public Task<MessagingResponse> SendMessageAsync(CreateMessageOptions options)
+        public Task<MessageResource> SendMessageAsync(CreateMessageOptions options)
         {
-            if (options.From == null && String.IsNullOrEmpty(options.MessagingServiceSid))
+            if (options == null)
             {
-                options.MessagingServiceSid = MessagingServiceSid;
+                throw new ArgumentNullException(nameof(options));
             }
 
-            var error = ValidateOptions(options);
-            if (!String.IsNullOrEmpty(error))
+            if (String.IsNullOrEmpty(options.Body))
             {
-                return Task.FromResult(HandleSendError(error));
+                throw new InvalidOperationException("Message body cannot be empty.");
+            }
+
+            if (options.To == null)
+            {
+                throw new InvalidOperationException("Recipient phone number cannot be empty.");
+            }
+
+            if (options.From != null && !NumberIsValid(options.From))
+            {
+                throw new InvalidOperationException($"The number '{options.From}' is not in a valid Twilio format.");
+            }
+
+            if (!TwilioSmsModule.TwilioClientInitialized)
+            {
+                throw new InvalidOperationException("The Twilio client is not initialized. Please check your application settings.");
+            }
+
+            var sender = options.From?.ToString() ?? options.MessagingServiceSid ?? MessagingServiceSid;
+            if (String.IsNullOrEmpty(sender))
+            {
+                throw new InvalidOperationException("No 'From' phone number or Messaging Service provided.");
+            }
+
+            if (!NumberIsValid(options.To))
+            {
+                throw new InvalidOperationException($"The number '{options.To}' is not in a valid Twilio format.");
             }
 
             return SendMessageAsyncInternal(options);
@@ -70,39 +89,24 @@ namespace Kentico.Xperience.Twilio.SMS.Services
 
 
         /// <inheritdoc/>
-        public Task<NumberValidationResponse> ValidatePhoneNumberAsync(string phoneNumber, string countryCode = null)
+        public Task<PhoneNumberResource> ValidatePhoneNumberAsync(string phoneNumber, string countryCode = null)
         {
             if (String.IsNullOrEmpty(phoneNumber))
             {
-                return Task.FromResult(HandleValidationError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyValidationNumber")));
+                throw new ArgumentNullException(nameof(phoneNumber));
             }
 
             if (!TwilioSmsModule.TwilioClientInitialized)
             {
-                return Task.FromResult(HandleValidationError(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.ClientNotInitialized")));
+                throw new InvalidOperationException("The Twilio client is not initialized. Please check your application settings.");
+            }
+
+            if (!String.IsNullOrEmpty(countryCode) && !countryCodeRegex.IsMatch(countryCode))
+            {
+                throw new InvalidOperationException($"The country code '{countryCode}' isn't a valid 2-letter country code.");
             }
 
             return ValidatePhoneNumberAsyncInternal(phoneNumber, countryCode);
-        }
-
-
-        private MessagingResponse HandleSendError(string error)
-        {
-            eventLogService.LogError(nameof(TwilioSmsClient), nameof(HandleSendError), error);
-            return new MessagingResponse(false)
-            {
-                ErrorMessage = error
-            };
-        }
-
-
-        private NumberValidationResponse HandleValidationError(string error)
-        {
-            eventLogService.LogError(nameof(TwilioSmsClient), nameof(HandleValidationError), error);
-            return new NumberValidationResponse(false)
-            {
-                ErrorMessage = error
-            };
         }
 
 
@@ -112,63 +116,18 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         }
 
 
-        private async Task<MessagingResponse> SendMessageAsyncInternal(CreateMessageOptions options)
+        private async Task<MessageResource> SendMessageAsyncInternal(CreateMessageOptions options)
         {
-            try
-            {
-                var response = await MessageResource.CreateAsync(options);
-
-                return new MessagingResponse(true)
-                {
-                    Id = response.Sid,
-                    Status = response.Status,
-                    ErrorMessage = response.ErrorMessage
-                };
-            }
-            catch (Exception ex)
-            {
-                return HandleSendError(ex.Message);
-            }
-        }
-
-
-        private string ValidateOptions(CreateMessageOptions options)
-        {
-            if (!TwilioSmsModule.TwilioClientInitialized)
-            {
-                return localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.ClientNotInitialized");
-            }
-
+            // Set Messaging Service from settings if From number or service not set in options
             if (options.From == null && String.IsNullOrEmpty(options.MessagingServiceSid))
             {
-                return localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptySender");
+                options.MessagingServiceSid = MessagingServiceSid;
             }
-
-            if (options.From != null && !NumberIsValid(options.From))
-            {
-                return String.Format(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.InvalidNumber"), options.From);
-            }
-
-            if (String.IsNullOrEmpty(options.Body))
-            {
-                return localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyBody");
-            }
-
-            if (options.To == null)
-            {
-                return localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.EmptyRecipient");
-            }
-
-            if (!NumberIsValid(options.To))
-            {
-                return String.Format(localizationService.GetString("Kentico.Xperience.Twilio.SMS.Error.InvalidNumber"), options.To);
-            }
-
-            return String.Empty;
+            return await MessageResource.CreateAsync(options);
         }
 
 
-        private async Task<NumberValidationResponse> ValidatePhoneNumberAsyncInternal(string phoneNumber, string countryCode)
+        private async Task<PhoneNumberResource> ValidatePhoneNumberAsyncInternal(string phoneNumber, string countryCode)
         {
             var cacheKey = $"{phoneNumber}|{countryCode}";
             if (validatedNumbers.TryGetValue(cacheKey, out var cachedResponse))
@@ -182,26 +141,10 @@ namespace Kentico.Xperience.Twilio.SMS.Services
                 options.CountryCode = countryCode;
             }
 
-            try
-            {
-                var response = await PhoneNumberResource.FetchAsync(options);
-                var validationResponse = new NumberValidationResponse(true)
-                {
-                    Valid = response.Valid,
-                    FormattedNumber = response.PhoneNumber?.ToString(),
-                    NationalFormat = response.NationalFormat,
-                    CountryCode = response.CountryCode,
-                    ValidationErrors = response.ValidationErrors
-                };
+            var response = await PhoneNumberResource.FetchAsync(options);
+            validatedNumbers.Add(cacheKey, response);
 
-                validatedNumbers.Add(cacheKey, validationResponse);
-
-                return validationResponse;
-            }
-            catch (Exception ex)
-            {
-                return HandleValidationError(ex.Message);
-            }
+            return response;
         }
     }
 }

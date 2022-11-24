@@ -1,8 +1,7 @@
-﻿using Kentico.Xperience.Twilio.SMS.Models;
-
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 using Twilio.Rest.Api.V2010.Account;
+using Twilio.Rest.Lookups.V2;
 
 namespace Kentico.Xperience.Twilio.SMS.Services
 {
@@ -18,7 +17,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         /// the default Messaging Service from the Xperience settings will be used.</remarks>
         /// <param name="options">The options to use.</param>
         /// <returns>The response from the Twilio API.</returns>
-        Task<MessagingResponse> SendMessageAsync(CreateMessageOptions options);
+        Task<MessageResource> SendMessageAsync(CreateMessageOptions options);
 
 
         /// <summary>
@@ -29,6 +28,6 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         /// <param name="countryCode">Country code for national phone number lookups. If not provided, the number is verified with
         /// Twilio's international lookup service.</param>
         /// <returns>The response from the Twilio API.</returns>
-        Task<NumberValidationResponse> ValidatePhoneNumberAsync(string phoneNumber, string countryCode = null);
+        Task<PhoneNumberResource> ValidatePhoneNumberAsync(string phoneNumber, string countryCode = null);
     }
 }
