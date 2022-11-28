@@ -82,8 +82,11 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 };
                 var response = await twilioSmsClient.SendMessageAsync(options);
 
-                Assert.That(response, Is.Not.Null);
-                Assert.That(response.Status == MessageResource.StatusEnum.Queued);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(response, Is.Not.Null);
+                    Assert.That(response.Status == MessageResource.StatusEnum.Queued);
+                });
                 await twilioRestClient.Received().RequestAsync(Arg.Is<Request>(arg =>
                     arg.Uri.AbsolutePath.EndsWith(MESSAGING_PATH, StringComparison.OrdinalIgnoreCase)
                  && arg.PostParams.SingleOrDefault(kvp => kvp.Key.Equals("To", StringComparison.OrdinalIgnoreCase)).Value.Equals(expectedRecipient, StringComparison.OrdinalIgnoreCase)
@@ -117,8 +120,11 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 };
                 var response = await twilioSmsClient.SendMessageAsync(options);
 
-                Assert.That(response, Is.Not.Null);
-                Assert.That(response.Status == MessageResource.StatusEnum.Queued);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(response, Is.Not.Null);
+                    Assert.That(response.Status == MessageResource.StatusEnum.Queued);
+                });
                 await twilioRestClient.Received().RequestAsync(Arg.Is<Request>(arg =>
                     arg.Uri.AbsolutePath.EndsWith(MESSAGING_PATH, StringComparison.OrdinalIgnoreCase)
                  && arg.PostParams.SingleOrDefault(kvp => kvp.Key.Equals("To", StringComparison.OrdinalIgnoreCase)).Value.Equals(expectedRecipient, StringComparison.OrdinalIgnoreCase)
@@ -159,8 +165,11 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber);
                 var response = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber);
 
-                Assert.That(response, Is.Not.Null);
-                Assert.That(response.Valid, Is.True);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(response, Is.Not.Null);
+                    Assert.That(response.Valid, Is.True);
+                });
                 await twilioRestClient.Received(1).RequestAsync(Arg.Is<Request>(arg => arg.Uri.AbsolutePath.EndsWith(expectedPath, StringComparison.OrdinalIgnoreCase)));
             }
 
@@ -191,8 +200,11 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 var expectedPath = String.Format(VALIDATION_PATH, phoneNumber);
                 var response = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber, countryCode);
 
-                Assert.That(response, Is.Not.Null);
-                Assert.That(response.Valid, Is.True);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(response, Is.Not.Null);
+                    Assert.That(response.Valid, Is.True);
+                });
                 await twilioRestClient.Received().RequestAsync(Arg.Is<Request>(arg =>
                     arg.Uri.AbsolutePath.EndsWith(expectedPath, StringComparison.OrdinalIgnoreCase)
                  && arg.QueryParams.SingleOrDefault(kvp => kvp.Key.Equals("CountryCode", StringComparison.OrdinalIgnoreCase)).Value.Equals(countryCode, StringComparison.OrdinalIgnoreCase)));
