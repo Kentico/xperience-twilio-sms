@@ -1,10 +1,10 @@
 ﻿using CMS;
 using CMS.Core;
+using CMS.Helpers;
 
 using Kentico.Xperience.Twilio.SMS.Services;
 
 using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -20,11 +20,12 @@ namespace Kentico.Xperience.Twilio.SMS.Services
     /// </summary>
     internal class TwilioSmsClient : ITwilioSmsClient
     {
+        private const string CACHEKEY_PHONENUMBERRESOURCE = "Twilio|SMS|PhoneNumberResource|{0}|{1}";
         private const string SETTING_TWILIO_MESSAGINGSERVICESID = "TwilioSMSMessagingService";
         private readonly ISettingsService settingsService;
+        private readonly IProgressiveCache progressiveCache;
         private readonly Regex countryCodeRegex = new("^[A-Z]{2}$");
         private readonly Regex phoneNumberRegex = new("^\\+[1-9]\\d{1,14}$");
-        private readonly Dictionary<string, PhoneNumberResource> validatedNumbers = new();
 
 
         private string MessagingServiceSid
@@ -39,9 +40,10 @@ namespace Kentico.Xperience.Twilio.SMS.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="TwilioSmsClient"/> class.
         /// </summary>
-        public TwilioSmsClient(ISettingsService settingsService)
+        public TwilioSmsClient(ISettingsService settingsService, IProgressiveCache progressiveCache)
         {
             this.settingsService = settingsService;
+            this.progressiveCache = progressiveCache;
         }
 
 
@@ -125,22 +127,17 @@ namespace Kentico.Xperience.Twilio.SMS.Services
 
         private async Task<PhoneNumberResource> ValidatePhoneNumberAsyncInternal(string phoneNumber, string countryCode)
         {
-            var cacheKey = $"{phoneNumber}|{countryCode}";
-            if (validatedNumbers.TryGetValue(cacheKey, out var cachedResponse))
+            return await progressiveCache.LoadAsync(async (cs) =>
             {
-                return cachedResponse;
-            }
+                var options = new FetchPhoneNumberOptions(phoneNumber);
+                if (!String.IsNullOrEmpty(countryCode))
+                {
+                    options.CountryCode = countryCode;
+                }
 
-            var options = new FetchPhoneNumberOptions(phoneNumber);
-            if (!String.IsNullOrEmpty(countryCode))
-            {
-                options.CountryCode = countryCode;
-            }
+                return await PhoneNumberResource.FetchAsync(options);
 
-            var response = await PhoneNumberResource.FetchAsync(options);
-            validatedNumbers.Add(cacheKey, response);
-
-            return response;
+            }, new CacheSettings(30, String.Format(CACHEKEY_PHONENUMBERRESOURCE, phoneNumber, countryCode)));
         }
     }
 }

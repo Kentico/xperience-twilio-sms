@@ -1,4 +1,5 @@
 ﻿using CMS.Core;
+using CMS.Helpers;
 
 using Kentico.Xperience.Twilio.SMS.Services;
 
@@ -15,6 +16,7 @@ using Twilio;
 using Twilio.Clients;
 using Twilio.Http;
 using Twilio.Rest.Api.V2010.Account;
+using Twilio.Rest.Lookups.V2;
 using Twilio.Types;
 
 namespace Kentico.Xperience.Twilio.SMS.Tests
@@ -27,6 +29,7 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
         private static ITwilioSmsClient twilioSmsClient;
         private static readonly ITwilioRestClient twilioRestClient = Substitute.For<ITwilioRestClient>();
         private static readonly ISettingsService settingsService = Substitute.For<ISettingsService>();
+        private static readonly IProgressiveCache progressiveCache = Substitute.For<IProgressiveCache>();
 
 
         /// <summary>
@@ -55,7 +58,7 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 TwilioClient.SetRestClient(twilioRestClient);
                 TwilioSmsModule.TwilioClientInitialized = true;
 
-                twilioSmsClient = new TwilioSmsClient(settingsService);
+                twilioSmsClient = new TwilioSmsClient(settingsService, progressiveCache);
             }
 
 
@@ -146,6 +149,13 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
             [SetUp]
             public void ValidateNumberAsyncTests_SetUp()
             {
+                progressiveCache.LoadAsync(Arg.Any<Func<CacheSettings, Task<PhoneNumberResource>>>(), Arg.Any<CacheSettings>()).ReturnsForAnyArgs(async args =>
+                {
+                    // Execute the passed function
+                    var func = args.ArgAt<Func<CacheSettings, Task<PhoneNumberResource>>>(0);
+                    return await func(args.ArgAt<CacheSettings>(1));
+                });
+
                 twilioRestClient.ClearReceivedCalls();
                 twilioRestClient.RequestAsync(Arg.Any<Request>()).ReturnsForAnyArgs(args =>
                     Task.FromResult(new Response(HttpStatusCode.OK, "{ valid:true }")));
@@ -153,24 +163,7 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 TwilioClient.SetRestClient(twilioRestClient);
                 TwilioSmsModule.TwilioClientInitialized = true;
 
-                twilioSmsClient = new TwilioSmsClient(settingsService);
-            }
-
-
-            [Test]
-            public async Task ValidateNumberAsync_DuplicateRequest_UsesCache()
-            {
-                var phoneNumber = "1112223333";
-                var expectedPath = String.Format(VALIDATION_PATH, phoneNumber);
-                await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber);
-                var response = await twilioSmsClient.ValidatePhoneNumberAsync(phoneNumber);
-
-                Assert.Multiple(() =>
-                {
-                    Assert.That(response, Is.Not.Null);
-                    Assert.That(response.Valid, Is.True);
-                });
-                await twilioRestClient.Received(1).RequestAsync(Arg.Is<Request>(arg => arg.Uri.AbsolutePath.EndsWith(expectedPath, StringComparison.OrdinalIgnoreCase)));
+                twilioSmsClient = new TwilioSmsClient(settingsService, progressiveCache);
             }
 
 
@@ -208,6 +201,7 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
                 await twilioRestClient.Received().RequestAsync(Arg.Is<Request>(arg =>
                     arg.Uri.AbsolutePath.EndsWith(expectedPath, StringComparison.OrdinalIgnoreCase)
                  && arg.QueryParams.SingleOrDefault(kvp => kvp.Key.Equals("CountryCode", StringComparison.OrdinalIgnoreCase)).Value.Equals(countryCode, StringComparison.OrdinalIgnoreCase)));
+                await progressiveCache.Received().LoadAsync(Arg.Any<Func<CacheSettings, Task<PhoneNumberResource>>>(), Arg.Any<CacheSettings>());
             }
         }
     }
