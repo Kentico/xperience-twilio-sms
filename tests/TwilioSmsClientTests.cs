@@ -22,7 +22,7 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
     /// <summary>
     /// Unit tests for the <see cref="ITwilioSmsClient"/> class.
     /// </summary>
-    internal class TwilioSmsClientTests
+    public class TwilioSmsClientTests
     {
         private static ITwilioSmsClient twilioSmsClient;
         private static readonly ITwilioRestClient twilioRestClient = Substitute.For<ITwilioRestClient>();
@@ -33,7 +33,7 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
         /// Unit tests for the <see cref="ITwilioSmsClient.SendMessageAsync"/> method.
         /// </summary>
         [TestFixture]
-        internal class SendMessageAsyncTests
+        public class SendMessageAsyncTests
         {
             private const string ACCOUNT = "testaccount";
             private const string MESSAGING_SERVICE = "testservice";
@@ -138,7 +138,7 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
         /// Unit tests for the <see cref="ITwilioSmsClient.ValidatePhoneNumberAsync"/> method.
         /// </summary>
         [TestFixture]
-        internal class ValidateNumberAsyncTests
+        public class ValidateNumberAsyncTests
         {
             private const string VALIDATION_PATH = "/v2/PhoneNumbers/{0}";
 
@@ -187,7 +187,7 @@ namespace Kentico.Xperience.Twilio.SMS.Tests
             {
                 var countryCode = "en-US";
 
-                Assert.ThrowsAsync<InvalidOperationException>(async() => await twilioSmsClient.ValidatePhoneNumberAsync("+12223334444", countryCode),
+                Assert.ThrowsAsync<ArgumentException>(async() => await twilioSmsClient.ValidatePhoneNumberAsync("+12223334444", countryCode),
                     $"The country code '{countryCode}' isn't a valid 2-letter country code.");
             }
 
