@@ -68,7 +68,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
 
             if (!TwilioSmsModule.TwilioClientInitialized)
             {
-                throw new InvalidOperationException("The Twilio client is not initialized. Please check your application settings.");
+                throw new InvalidOperationException("The Twilio client is not initialized. Please check your application settings in the configuration file of your project.");
             }
 
             if (options.From == null && String.IsNullOrEmpty(options.MessagingServiceSid))
@@ -103,7 +103,7 @@ namespace Kentico.Xperience.Twilio.SMS.Services
 
             if (!TwilioSmsModule.TwilioClientInitialized)
             {
-                throw new InvalidOperationException("The Twilio client is not initialized. Please check your application settings.");
+                throw new InvalidOperationException("The Twilio client is not initialized. Please check your application settings in the configuration file of your project.");
             }
 
             if (!String.IsNullOrEmpty(countryCode) && !countryCodeRegex.IsMatch(countryCode))
