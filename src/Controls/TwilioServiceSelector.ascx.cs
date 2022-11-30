@@ -17,7 +17,6 @@ namespace Kentico.Xperience.Twilio.SMS.Controls
     public partial class TwilioServiceSelector : FormEngineUserControl
     {
         private string mValue;
-        private const string CACHEKEY_SERVICES = "Twilio|SMS|ServiceResource";
 
 
         /// <inheritdoc/>
@@ -71,25 +70,21 @@ namespace Kentico.Xperience.Twilio.SMS.Controls
 
         private IEnumerable<ServiceResource> GetMessagingServices()
         {
-            return CacheHelper.Cache((cs) =>
+            if (!TwilioSmsModule.TwilioClientInitialized)
             {
-                try
-                {
-                    if (!TwilioSmsModule.TwilioClientInitialized)
-                    {
-                        return Enumerable.Empty<ServiceResource>();
-                    }
+                return Enumerable.Empty<ServiceResource>();
+            }
 
-                    return ServiceResource.Read().AsEnumerable();
-                }
-                catch (Exception ex)
-                {
-                    cs.Cached = false;
-                    Service.Resolve<IEventLogService>().LogException(nameof(TwilioServiceSelector), nameof(GetMessagingServices), ex);
+            try
+            {
+                return ServiceResource.Read().AsEnumerable();
+            }
+            catch (Exception ex)
+            {
+                Service.Resolve<IEventLogService>().LogException(nameof(TwilioServiceSelector), nameof(GetMessagingServices), ex);
 
-                    return Enumerable.Empty<ServiceResource>();
-                }
-            }, new CacheSettings(30, CACHEKEY_SERVICES));
+                return Enumerable.Empty<ServiceResource>();
+            }
         }
     }
 }
