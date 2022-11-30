@@ -9,7 +9,7 @@
   <PropertyGroup>
 	<Title>Xperience Twilio SMS</Title>
 	<PackageId>Kentico.Xperience.Twilio.SMS</PackageId>
-	<Version>0.0.3</Version>
+	<Version>0.0.4</Version>
 	<Authors>Kentico Software</Authors>
 	<Company>Kentico Software</Company>
 	<PackageIcon>icon.png</PackageIcon>

@@ -1,15 +1,11 @@
-﻿using CMS;
-using CMS.ContactManagement;
+﻿using CMS.ContactManagement;
 using CMS.DataEngine;
 using CMS.FormEngine;
 using CMS.MacroEngine;
 
-using Kentico.Xperience.Twilio.SMS;
-
 using System;
 using System.Linq;
 
-[assembly: RegisterExtension(typeof(TwilioSmsMacros), typeof(UtilNamespace))]
 namespace Kentico.Xperience.Twilio.SMS
 {
     internal class TwilioSmsMacros : MacroMethodContainer

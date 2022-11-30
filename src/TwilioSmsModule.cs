@@ -1,19 +1,12 @@
-﻿using CMS;
-using CMS.Base;
+﻿using CMS.Base;
 using CMS.DataEngine;
 using CMS.Helpers;
 
-using Kentico.Xperience.Twilio.SMS;
-
 using System;
 using System.Configuration;
-using System.Runtime.CompilerServices;
 
 using Twilio;
 
-[assembly: AssemblyDiscoverable]
-[assembly: RegisterModule(typeof(TwilioSmsModule))]
-[assembly: InternalsVisibleTo("Kentico.Xperience.Twilio.SMS.Tests")]
 namespace Kentico.Xperience.Twilio.SMS
 {
     /// <summary>

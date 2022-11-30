@@ -1,8 +1,5 @@
-﻿using CMS;
-using CMS.Core;
+﻿using CMS.Core;
 using CMS.Helpers;
-
-using Kentico.Xperience.Twilio.SMS.Services;
 
 using System;
 using System.Text.RegularExpressions;
@@ -12,7 +9,6 @@ using Twilio.Rest.Api.V2010.Account;
 using Twilio.Rest.Lookups.V2;
 using Twilio.Types;
 
-[assembly: RegisterImplementation(typeof(ITwilioSmsClient), typeof(TwilioSmsClient), Lifestyle = Lifestyle.Singleton, Priority = RegistrationPriority.SystemDefault)]
 namespace Kentico.Xperience.Twilio.SMS.Services
 {
     /// <summary>
