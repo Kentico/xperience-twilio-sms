@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+	<RootNamespace>Kentico.Xperience.Twilio.SMS</RootNamespace>
+	<LangVersion>Latest</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+	<Title>Xperience Twilio SMS</Title>
+	<PackageId>Kentico.Xperience.Twilio.SMS</PackageId>
+	<Version>0.0.4</Version>
+	<Authors>Kentico Software</Authors>
+	<Company>Kentico Software</Company>
+	<PackageIcon>icon.png</PackageIcon>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<PackageTags>kentico xperience mvc core twilio sms messaging</PackageTags>
+	<Description>Integrates the Twilio SMS API and provides Marketing Automation actions to send messages to your customers.</Description>
+	<RepositoryUrl>https://github.com/kentico/xperience-twilio-sms</RepositoryUrl>
+	<RepositoryType>git</RepositoryType>
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Controls\**" />
+    <EmbeddedResource Remove="Controls\**" />
+    <None Remove="Controls\**" />
+	<None Include="..\img\icon.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Kentico.Xperience.Libraries" Version="13.0.73" />
+	<PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
+    <PackageReference Include="Twilio" Version="5.81.1" />
+  </ItemGroup>
+
+</Project>
