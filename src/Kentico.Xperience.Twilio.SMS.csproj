@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-	<PackageReference Include="Kentico.Xperience.Libraries" Version="13.0.73" />
+	<PackageReference Include="Kentico.Xperience.Libraries" Version="13.0.137" />
 	<PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
     <PackageReference Include="Twilio" Version="5.81.1" />
   </ItemGroup>
